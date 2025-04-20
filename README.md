@@ -189,9 +189,50 @@ Once the application is running, you can access:
 - Swagger UI documentation at http://localhost:8000/docs
 - ReDoc documentation at http://localhost:8000/redoc
 
-## Known Test Warnings
+## Test Coverage & Testing
 
-When running tests with `pytest`, you may see warnings such as:
+### Coverage Requirements
+
+- The project requires **at least 75% code coverage**. This is a combined requirement for all tests (unit + integration).
+- You do **not** need to have 75% separately for unit and integration tests. The total coverage is calculated across all tests using `pytest-cov`.
+
+### How to Check Coverage
+
+To run **all tests** (unit and integration) and check coverage:
+
+```bash
+poetry run pytest --cov=src --cov-report=term-missing
+```
+
+- This will show the total coverage percentage and highlight any lines not covered by tests.
+- Aim for at least 75% total coverage.
+
+### Running Only Unit or Integration Tests
+
+- **Unit tests:**
+  ```bash
+  poetry run pytest tests/repository/ --cov=src --cov-report=term-missing
+  ```
+- **Integration tests:**
+  ```bash
+  poetry run pytest tests/integration/ --cov=src --cov-report=term-missing
+  ```
+- For official coverage, always run all tests together.
+
+### Integration Tests
+
+- Integration tests are located in `tests/integration/`.
+- They use a separate SQLite database and mock all external email sending.
+- **No real emails are sent** during integration testing.
+- Test environment variables are set at the top of each integration test file.
+- To run only integration tests:
+  ```bash
+  poetry run pytest tests/integration/
+  ```
+
+### Known Test Warnings
+
+When running tests, you may see warnings such as:
 
 - SQLAlchemy `MovedIn20Warning` about `declarative_base()`
 - SQLAlchemy `DeprecationWarning: datetime.datetime.utcnow() is deprecated...`
@@ -199,20 +240,10 @@ When running tests with `pytest`, you may see warnings such as:
 - Pydantic `PydanticDeprecatedSince20: The dict method is deprecated; use model_dump instead`
 - passlib `DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13`
 
-**Why these warnings appear:**
-- They are related to the migration to SQLAlchemy 2.x, Pydantic 2.x, and Python 3.13.
-- The codebase is compatible with the latest versions, but some legacy code and patterns are still present due to backward compatibility and gradual migration.
+**These warnings do NOT affect test correctness or application logic.**
 
-**Are they critical?**
-- No, these warnings do **not** affect the correctness of the tests or the application.
 - All tests pass and the application works as expected.
-
-**Will they be fixed?**
-- These warnings will be addressed in future updates as the codebase is gradually refactored for full compatibility with the newest versions of dependencies.
-
-For more details, see:
-- [SQLAlchemy 2.0 Migration](https://docs.sqlalchemy.org/en/20/changelog/changelog_20.html)
-- [Pydantic 2.0 Migration](https://docs.pydantic.dev/latest/migration/)
+- Warnings will be addressed in future updates as the codebase is refactored for full compatibility with the newest versions of dependencies.
 
 ## Documentation
 

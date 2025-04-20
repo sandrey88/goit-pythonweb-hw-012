@@ -110,3 +110,38 @@ def test_search_contacts(db):
     contacts_repo.create_contact(db, contact_in)
     results = contacts_repo.search_contacts(db, "Search")
     assert any(c.email == "searchtarget@example.com" for c in results)
+
+
+def test_get_upcoming_birthdays(db):
+    import datetime
+    from src.schemas import UserCreate
+    user = create_user(db, UserCreate(email="birthdaysuser@example.com", password="password"), background_tasks=None)
+    today = datetime.date.today()
+    in_3_days = today + datetime.timedelta(days=3)
+    in_10_days = today + datetime.timedelta(days=10)
+    # Contact with birthday in 3 days (should be in the list)
+    contact_soon = ContactCreate(
+        first_name="Soon",
+        last_name="Birthday",
+        email="soon@example.com",
+        phone="1231231234",
+        birthday=in_3_days.strftime("%Y-%m-%d"),
+        additional_data="Soon birthday",
+        user_id=user.id
+    )
+    # Contact with birthday in 10 days (should not be in the list)
+    contact_late = ContactCreate(
+        first_name="Late",
+        last_name="Birthday",
+        email="late@example.com",
+        phone="3213214321",
+        birthday=in_10_days.strftime("%Y-%m-%d"),
+        additional_data="Late birthday",
+        user_id=user.id
+    )
+    contacts_repo.create_contact(db, contact_soon)
+    contacts_repo.create_contact(db, contact_late)
+    results = contacts_repo.get_upcoming_birthdays(db)
+    emails = [c.email for c in results]
+    assert "soon@example.com" in emails
+    assert "late@example.com" not in emails
