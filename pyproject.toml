@@ -25,6 +25,7 @@ slowapi = "^0.1.8"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 sphinx = "^8.2.3"
+pytest-cov = "^6.1.1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -4,22 +4,10 @@ from src.schemas import UserCreate
 from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import os
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-conf = ConnectionConfig(
-    MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
-    MAIL_FROM=os.environ.get("MAIL_FROM"),
-    MAIL_PORT=int(os.environ.get("MAIL_PORT", 465)),
-    MAIL_SERVER=os.environ.get("MAIL_SERVER"),
-    MAIL_STARTTLS=os.environ.get("MAIL_STARTTLS", "False") == "True",
-    MAIL_SSL_TLS=os.environ.get("MAIL_SSL_TLS", "True") == "True",
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
 
 async def send_verification_email(email: str, token: str):
     """
@@ -29,6 +17,18 @@ async def send_verification_email(email: str, token: str):
         email (str): The recipient's email address.
         token (str): The verification token to include in the link.
     """
+    from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+    conf = ConnectionConfig(
+        MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
+        MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
+        MAIL_FROM=os.environ.get("MAIL_FROM"),
+        MAIL_PORT=int(os.environ.get("MAIL_PORT", 465)),
+        MAIL_SERVER=os.environ.get("MAIL_SERVER"),
+        MAIL_STARTTLS=os.environ.get("MAIL_STARTTLS", "False") == "True",
+        MAIL_SSL_TLS=os.environ.get("MAIL_SSL_TLS", "True") == "True",
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True
+    )
     verification_link = f"http://localhost:8000/auth/verify-email?token={token}"
     message = MessageSchema(
         subject="Verify your email",
@@ -52,6 +52,20 @@ def get_user_by_email(db: Session, email: str):
         User or None: The user instance if found, else None.
     """
     return db.query(User).filter(User.email == email).first()
+
+
+def get_user_by_id(db: Session, user_id: int):
+    """
+    Retrieve a user by their ID.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        user_id (int): The user's ID.
+
+    Returns:
+        User or None: The user instance if found, else None.
+    """
+    return db.query(User).filter(User.id == user_id).first()
 
 
 def create_user(db: Session, user: UserCreate, background_tasks=None):
@@ -116,6 +130,26 @@ def update_user_avatar(db: Session, user_id: int, avatar_url: str):
     user = db.query(User).filter(User.id == user_id).first()
     if user:
         user.avatar_url = avatar_url
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def verify_user_email(db: Session, token: str):
+    """
+    Verify a user's email using a verification token.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        token (str): The verification token.
+
+    Returns:
+        User or None: The verified user instance if found and token matches, else None.
+    """
+    user = db.query(User).filter(User.verification_token == token).first()
+    if user:
+        user.is_verified = True
+        user.verification_token = None
         db.commit()
         db.refresh(user)
     return user

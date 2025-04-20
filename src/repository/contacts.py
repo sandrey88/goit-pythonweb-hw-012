@@ -62,7 +62,9 @@ def update_contact(db: Session, contact_id: int, contact: ContactUpdate):
     """
     db_contact = db.query(Contact).filter(Contact.id == contact_id).first()
     if db_contact:
-        for key, value in contact.dict().items():
+        for key, value in contact.dict(exclude_unset=True).items():
+            if key == "user_id":
+                continue
             setattr(db_contact, key, value)
         db.commit()
         db.refresh(db_contact)

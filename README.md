@@ -189,6 +189,31 @@ Once the application is running, you can access:
 - Swagger UI documentation at http://localhost:8000/docs
 - ReDoc documentation at http://localhost:8000/redoc
 
+## Known Test Warnings
+
+When running tests with `pytest`, you may see warnings such as:
+
+- SQLAlchemy `MovedIn20Warning` about `declarative_base()`
+- SQLAlchemy `DeprecationWarning: datetime.datetime.utcnow() is deprecated...`
+- Pydantic `PydanticDeprecatedSince20` about class-based `Config`
+- Pydantic `PydanticDeprecatedSince20: The dict method is deprecated; use model_dump instead`
+- passlib `DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13`
+
+**Why these warnings appear:**
+- They are related to the migration to SQLAlchemy 2.x, Pydantic 2.x, and Python 3.13.
+- The codebase is compatible with the latest versions, but some legacy code and patterns are still present due to backward compatibility and gradual migration.
+
+**Are they critical?**
+- No, these warnings do **not** affect the correctness of the tests or the application.
+- All tests pass and the application works as expected.
+
+**Will they be fixed?**
+- These warnings will be addressed in future updates as the codebase is gradually refactored for full compatibility with the newest versions of dependencies.
+
+For more details, see:
+- [SQLAlchemy 2.0 Migration](https://docs.sqlalchemy.org/en/20/changelog/changelog_20.html)
+- [Pydantic 2.0 Migration](https://docs.pydantic.dev/latest/migration/)
+
 ## Documentation
 
 Comprehensive documentation is generated using [Sphinx](https://www.sphinx-doc.org/).
