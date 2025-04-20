@@ -17,6 +17,18 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 @limiter.limit(REGISTER_LIMIT)
 def register(request: Request, user: UserCreate, db: Session = Depends(get_db), background_tasks: BackgroundTasks = None):
+    """
+    Register a new user and send a verification email.
+
+    Args:
+        request (Request): FastAPI request object.
+        user (UserCreate): Data for the new user.
+        db (Session): SQLAlchemy database session.
+        background_tasks (BackgroundTasks, optional): FastAPI background tasks for sending email.
+
+    Returns:
+        UserRead: The created user instance.
+    """
     db_user = user_repo.get_user_by_email(db, user.email)
     if db_user:
         raise HTTPException(status_code=409, detail="User with this email already exists")
@@ -31,6 +43,17 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    """
+    Authenticate a user and return a JWT access token.
+
+    Args:
+        username (str): The user's email address.
+        password (str): The user's password.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        dict: Access token and token type if authentication is successful.
+    """
     db_user = user_repo.authenticate_user(db, username, password)
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -41,6 +64,16 @@ def login(
 
 @router.get("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
+    """
+    Verify a user's email address using a verification token.
+
+    Args:
+        token (str): The verification token sent to the user's email.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        dict: Success message if the token is valid.
+    """
     user = db.query(user_repo.User).filter(user_repo.User.verification_token == token).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
@@ -52,6 +85,17 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 @router.get("/me")
 @limiter.limit(ME_LIMIT)
 def get_me(request: Request, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """
+    Retrieve the currently authenticated user's profile.
+
+    Args:
+        request (Request): FastAPI request object.
+        db (Session): SQLAlchemy database session.
+        current_user (User): The currently authenticated user.
+
+    Returns:
+        User: The current user instance.
+    """
     return current_user
 
 @router.patch("/avatar", response_model=UserRead)
@@ -60,6 +104,17 @@ def update_avatar(
     current_user=Depends(get_current_user),
     file: UploadFile = File(...)
 ):
+    """
+    Update the avatar for the currently authenticated user.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        current_user (User): The currently authenticated user.
+        file (UploadFile): The new avatar image file.
+
+    Returns:
+        UserRead: The updated user instance with the new avatar URL.
+    """
     # Upload to Cloudinary
     result = upload_avatar(file.file, public_id=f"user_{current_user.id}")
     avatar_url = result.get("secure_url")

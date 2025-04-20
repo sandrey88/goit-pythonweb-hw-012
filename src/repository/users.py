@@ -22,6 +22,13 @@ conf = ConnectionConfig(
 )
 
 async def send_verification_email(email: str, token: str):
+    """
+    Send a verification email with a tokenized link to the user.
+
+    Args:
+        email (str): The recipient's email address.
+        token (str): The verification token to include in the link.
+    """
     verification_link = f"http://localhost:8000/auth/verify-email?token={token}"
     message = MessageSchema(
         subject="Verify your email",
@@ -34,9 +41,31 @@ async def send_verification_email(email: str, token: str):
 
 
 def get_user_by_email(db: Session, email: str):
+    """
+    Retrieve a user by their email address.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        email (str): The user's email address.
+
+    Returns:
+        User or None: The user instance if found, else None.
+    """
     return db.query(User).filter(User.email == email).first()
 
+
 def create_user(db: Session, user: UserCreate, background_tasks=None):
+    """
+    Create a new user with email verification and hashed password.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        user (UserCreate): Data for the new user.
+        background_tasks (BackgroundTasks, optional): FastAPI background tasks for sending email.
+
+    Returns:
+        User or None: The created user instance if successful, else None.
+    """
     hashed_password = pwd_context.hash(user.password)
     verification_token = str(uuid4())
     db_user = User(email=user.email, hashed_password=hashed_password, verification_token=verification_token)
@@ -51,7 +80,19 @@ def create_user(db: Session, user: UserCreate, background_tasks=None):
         db.rollback()
         return None
 
+
 def authenticate_user(db: Session, email: str, password: str):
+    """
+    Authenticate a user by email and password.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        email (str): The user's email address.
+        password (str): The user's password (plain text).
+
+    Returns:
+        User or None: The authenticated user if credentials are valid, else None.
+    """
     user = get_user_by_email(db, email)
     if not user:
         return None
@@ -59,7 +100,19 @@ def authenticate_user(db: Session, email: str, password: str):
         return None
     return user
 
+
 def update_user_avatar(db: Session, user_id: int, avatar_url: str):
+    """
+    Update the avatar URL for a user.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        user_id (int): The ID of the user to update.
+        avatar_url (str): The new avatar URL.
+
+    Returns:
+        User or None: The updated user instance if found, else None.
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if user:
         user.avatar_url = avatar_url

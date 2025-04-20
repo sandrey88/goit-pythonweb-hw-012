@@ -1,4 +1,4 @@
-# goit-pythonweb-hw-10
+# goit-pythonweb-hw-12
 
 # FastAPI Contacts Management Application
 
@@ -6,7 +6,7 @@ REST API application for managing contacts with FastAPI framework.
 
 ## Technologies
 
-- Python 3.9+
+- Python 3.12+
 - FastAPI
 - SQLAlchemy
 - PostgreSQL
@@ -28,7 +28,7 @@ REST API application for managing contacts with FastAPI framework.
 
 ## Prerequisites
 
-- Python 3.9 or higher
+- Python 3.12 or higher
 - Poetry
 - Docker and Docker Compose
 
@@ -37,8 +37,8 @@ REST API application for managing contacts with FastAPI framework.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/sandrey88/goit-pythonweb-hw-10.git
-cd goit-pythonweb-hw-10
+git clone https://github.com/sandrey88/goit-pythonweb-hw-12.git
+cd goit-pythonweb-hw-12
 ```
 
 2. Copy environment variables:
@@ -188,6 +188,23 @@ Once the application is running, you can access:
 
 - Swagger UI documentation at http://localhost:8000/docs
 - ReDoc documentation at http://localhost:8000/redoc
+
+## Documentation
+
+Comprehensive documentation is generated using [Sphinx](https://www.sphinx-doc.org/).
+
+- All main modules and functions are documented with English docstrings.
+- To build the documentation locally, run:
+
+  ```bash
+  poetry run make -C docs html
+  ```
+
+- The generated HTML documentation will be available in `docs/build/html/index.html`.
+
+> **Note:** Only the Sphinx source files are included in the repository. The generated HTML files are not tracked by git.
+
+> **Note:** When building the documentation, you may see several WARNING messages (e.g., about duplicate object descriptions). These are expected due to how Sphinx processes class attributes and docstrings in SQLAlchemy and Pydantic models. They do not affect the quality or completeness of the generated documentation and can be safely ignored.
 
 ## Error Handling
 
