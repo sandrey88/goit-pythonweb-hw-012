@@ -60,3 +60,5 @@ poetry.lock
 # Docker
 .docker/
 docker-compose.override.yml
+
+test_api.db

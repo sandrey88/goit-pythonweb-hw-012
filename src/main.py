@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from .routes import contacts, users
-from src.database.db import engine
+from src.database.db import engine, Base
 from src.database.models import Base
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from src.limiter import limiter
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Contacts API")
 

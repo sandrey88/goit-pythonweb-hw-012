@@ -126,6 +126,13 @@ or install Redis as a system service and run `redis-server`.
 
 If you use Docker Compose, use `REDIS_URL=redis://redis:6379/0` instead.
 
+## Redis Caching
+
+- The application uses Redis to cache the current user during authentication.
+- When a user is authenticated, their data is cached in Redis for 15 minutes.
+- Subsequent requests with the same token will retrieve the user from Redis, reducing database load.
+- No manual Alembic migrations are required; database tables are created automatically on app startup via SQLAlchemy.
+
 ## Running the Application
 
 ### Using Docker (recommended):
@@ -174,6 +181,52 @@ poetry install
 ```bash
 poetry run uvicorn src.main:app --reload
 ```
+
+## Testing & Coverage
+
+### Coverage Requirements
+
+- The project requires **at least 75% code coverage** (unit + integration tests combined).
+- You do **not** need to have 75% separately for unit and integration tests. The total coverage is calculated across all tests using `pytest-cov`.
+
+### How to Run Tests
+
+You can run all tests (unit and integration) and check coverage in two ways:
+
+**Using Docker (recommended):**
+```bash
+docker-compose run --rm web pytest --cov=src --cov-report=term-missing
+```
+- This runs all tests in an isolated environment with all dependencies (PostgreSQL, Redis) started via Docker Compose.
+
+**Using Poetry (local development):**
+```bash
+poetry run pytest --cov=src --cov-report=term-missing
+```
+- Make sure PostgreSQL and Redis are running locally and all dependencies are installed with `poetry install`.
+
+- The total coverage percentage and uncovered lines will be shown after the tests complete.
+
+**To run only integration tests:**
+```bash
+poetry run pytest tests/integration/
+```
+
+See the `tests/` directory for more details on test structure.
+
+### Known Test Warnings
+
+When running tests, you may see warnings such as:
+
+- Pydantic `PydanticDeprecatedSince20`: support for class-based `Config` is deprecated; use `ConfigDict` instead.
+- Pydantic `PydanticDeprecatedSince20`: the `dict` method is deprecated; use `model_dump` instead.
+- SQLAlchemy `DeprecationWarning`: `datetime.datetime.utcnow()` is deprecated; use timezone-aware objects instead.
+- Passlib `DeprecationWarning`: `'crypt' is deprecated and slated for removal in Python 3.13`.
+
+**These warnings do NOT affect test correctness or application logic.**
+
+- All tests pass and the application works as expected.
+- Warnings will be addressed in future updates as the codebase is refactored for full compatibility with the newest versions of dependencies.
 
 ## API Endpoints
 
@@ -238,61 +291,15 @@ Once the application is running, you can access:
 - Swagger UI documentation at http://localhost:8000/docs
 - ReDoc documentation at http://localhost:8000/redoc
 
-## Test Coverage & Testing
+## Error Handling
 
-### Coverage Requirements
-
-- The project requires **at least 75% code coverage**. This is a combined requirement for all tests (unit + integration).
-- You do **not** need to have 75% separately for unit and integration tests. The total coverage is calculated across all tests using `pytest-cov`.
-
-### How to Check Coverage
-
-To run **all tests** (unit and integration) and check coverage:
-
-```bash
-poetry run pytest --cov=src --cov-report=term-missing
-```
-
-- This will show the total coverage percentage and highlight any lines not covered by tests.
-- Aim for at least 75% total coverage.
-
-### Running Only Unit or Integration Tests
-
-- **Unit tests:**
-  ```bash
-  poetry run pytest tests/repository/ --cov=src --cov-report=term-missing
-  ```
-- **Integration tests:**
-  ```bash
-  poetry run pytest tests/integration/ --cov=src --cov-report=term-missing
-  ```
-- For official coverage, always run all tests together.
-
-### Integration Tests
-
-- Integration tests are located in `tests/integration/`.
-- They use a separate SQLite database and mock all external email sending.
-- **No real emails are sent** during integration testing.
-- Test environment variables are set at the top of each integration test file.
-- To run only integration tests:
-  ```bash
-  poetry run pytest tests/integration/
-  ```
-
-### Known Test Warnings
-
-When running tests, you may see warnings such as:
-
-- SQLAlchemy `MovedIn20Warning` about `declarative_base()`
-- SQLAlchemy `DeprecationWarning: datetime.datetime.utcnow() is deprecated...`
-- Pydantic `PydanticDeprecatedSince20` about class-based `Config`
-- Pydantic `PydanticDeprecatedSince20: The dict method is deprecated; use model_dump instead`
-- passlib `DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13`
-
-**These warnings do NOT affect test correctness or application logic.**
-
-- All tests pass and the application works as expected.
-- Warnings will be addressed in future updates as the codebase is refactored for full compatibility with the newest versions of dependencies.
+- 404: Contact not found
+- 409: User already exists or duplicate email
+- 401: Invalid credentials
+- 403: Email not verified
+- 429: Too many requests (rate limit exceeded)
+- 422: Validation error (invalid data format)
+- 500: Internal server error
 
 ## Documentation
 
@@ -310,13 +317,3 @@ Comprehensive documentation is generated using [Sphinx](https://www.sphinx-doc.o
 > **Note:** Only the Sphinx source files are included in the repository. The generated HTML files are not tracked by git.
 
 > **Note:** When building the documentation, you may see several WARNING messages (e.g., about duplicate object descriptions). These are expected due to how Sphinx processes class attributes and docstrings in SQLAlchemy and Pydantic models. They do not affect the quality or completeness of the generated documentation and can be safely ignored.
-
-## Error Handling
-
-- 404: Contact not found
-- 409: User already exists or duplicate email
-- 401: Invalid credentials
-- 403: Email not verified
-- 429: Too many requests (rate limit exceeded)
-- 422: Validation error (invalid data format)
-- 500: Internal server error

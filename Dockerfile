@@ -16,9 +16,12 @@ RUN apt-get update \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for better cache
+# Ensure src is on PYTHONPATH for tests and app
+ENV PYTHONPATH=/app
+
+# Copy requirements.txt and install dependencies before copying the rest of the code
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the rest of the application
 COPY . .
