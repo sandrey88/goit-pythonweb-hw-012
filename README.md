@@ -13,6 +13,7 @@ REST API application for managing contacts with FastAPI framework.
 - Poetry (dependency management)
 - Docker & Docker Compose
 - Cloudinary (avatar storage)
+- Redis (cache)
 
 ## Features
 
@@ -75,7 +76,55 @@ MAIL_SERVER=smtp.example.com
 MAIL_STARTTLS=False
 MAIL_SSL_TLS=True
 SECRET_KEY=your_secret_key
+REDIS_URL=redis://redis:6379/0
 ```
+
+## Redis Cache
+
+This project uses Redis to cache the current user after authentication and reduce database load.
+
+### How to run Redis (for local development)
+
+Redis is started automatically as a service in `docker-compose.yml`.
+
+- The environment variable for Docker Compose should be:
+  ```env
+  REDIS_URL=redis://redis:6379/0
+  ```
+- If you run locally (not in Docker), use:
+  ```env
+  REDIS_URL=redis://localhost:6379/0
+  ```
+
+### How it works
+- When a user is authenticated, their data is cached in Redis for 15 minutes.
+- On subsequent requests, the app first checks Redis before querying the database.
+- If user data changes, the cache should be invalidated (see code for details).
+
+### Install Redis client dependency
+
+Install the async Redis client:
+
+```bash
+poetry add redis.asyncio
+```
+
+### Local Redis (for Poetry/local development)
+
+If you run the project locally (not in Docker), you must start Redis yourself:
+
+```bash
+docker run -p 6379:6379 redis
+```
+
+or install Redis as a system service and run `redis-server`.
+
+- In your `.env` file, set:
+  ```env
+  REDIS_URL=redis://localhost:6379/0
+  ```
+
+If you use Docker Compose, use `REDIS_URL=redis://redis:6379/0` instead.
 
 ## Running the Application
 
