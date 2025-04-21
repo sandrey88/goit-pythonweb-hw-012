@@ -301,6 +301,25 @@ Once the application is running, you can access:
 - 422: Validation error (invalid data format)
 - 500: Internal server error
 
+## Password Reset (Forgot Password)
+
+The application supports a secure password reset mechanism via email confirmation.
+
+- **Request Password Reset:**
+  - `POST /auth/request-password-reset`
+  - Body: `{ "email": "user@example.com" }`
+  - If the email exists, a reset link will be sent (valid for 30 minutes).
+  - For security, the response is always successful, regardless of whether the email is registered.
+
+- **Reset Password:**
+  - `POST /auth/reset-password`
+  - Body: `{ "token": "<reset_token>", "new_password": "<new_password>" }`
+  - `token` is the value from the reset link sent to your email (e.g., after clicking the link, copy the `token` query parameter).
+  - `new_password` must be at least 8 characters long.
+  - If the token is valid, the password will be updated.
+
+> **Note:** The reset link/token is valid for 30 minutes. After a successful reset, the token becomes invalid.
+
 ## Documentation
 
 Comprehensive documentation is generated using [Sphinx](https://www.sphinx-doc.org/).

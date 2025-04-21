@@ -107,3 +107,31 @@ class Contact(ContactBase):
 
     class Config:
         from_attributes = True
+
+class PasswordResetRequest(BaseModel):
+    """
+    Schema for requesting a password reset.
+
+    Attributes:
+        email (EmailStr): User's email address to send the password reset link.
+
+    Notes:
+        The reset link sent to the user's email contains a unique token as a query parameter.
+        This token must be used to reset the password within 30 minutes.
+    """
+    email: EmailStr
+
+class PasswordReset(BaseModel):
+    """
+    Schema for resetting the password.
+
+    Attributes:
+        token (str): Password reset token sent to the user's email (from the link).
+        new_password (str): New password to set. Must be at least 8 characters long.
+
+    Notes:
+        The `token` is the value from the reset link sent to your email (copy the `token` query parameter).
+        The `new_password` must be at least 8 characters long.
+    """
+    token: str
+    new_password: str = Field(min_length=8, max_length=128)

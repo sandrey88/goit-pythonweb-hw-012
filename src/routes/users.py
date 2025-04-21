@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Form, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
-from src.schemas import UserCreate, UserRead, UserLogin
+from src.schemas import UserCreate, UserRead, UserLogin, PasswordResetRequest, PasswordReset
 from src.repository import users as user_repo
 from src.database.db import get_db
 from src.auth_jwt import create_access_token
@@ -11,6 +11,7 @@ from fastapi import Request
 from src.limiter import limiter, REGISTER_LIMIT, ME_LIMIT
 from src.dependencies import get_current_user
 from src.services.cloudinary_service import upload_avatar
+from src.services.redis_service import redis_client
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -120,3 +121,44 @@ def update_avatar(
     avatar_url = result.get("secure_url")
     user = user_repo.update_user_avatar(db, current_user.id, avatar_url)
     return user
+
+@router.post("/request-password-reset", status_code=200)
+async def request_password_reset(request: PasswordResetRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """
+    Request a password reset. Sends a reset token to the user's email if the user exists.
+
+    Args:
+        request (PasswordResetRequest): The request containing the user's email.
+        background_tasks (BackgroundTasks): FastAPI background tasks for sending email.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        dict: Success message (always, to prevent user enumeration).
+    """
+    user = user_repo.get_user_by_email(db, request.email)
+    if user:
+        token = await user_repo.create_password_reset_token(user.email)
+        background_tasks.add_task(user_repo.send_password_reset_email, user.email, token)
+    # Always return success to avoid leaking user existence
+    return {"message": "If this email is registered, a password reset link has been sent."}
+
+@router.post("/reset-password", status_code=200)
+async def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
+    """
+    Reset the user's password using a valid reset token.
+
+    Args:
+        data (PasswordReset): The request containing the reset token and new password.
+        db (Session): SQLAlchemy database session.
+
+    Returns:
+        dict: Success or error message.
+    """
+    email = await user_repo.verify_password_reset_token(data.token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid or expired password reset token")
+    ok = await user_repo.reset_user_password(db, email, data.new_password)
+    await user_repo.consume_password_reset_token(data.token)
+    if not ok:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Password has been reset successfully. You can now log in."}

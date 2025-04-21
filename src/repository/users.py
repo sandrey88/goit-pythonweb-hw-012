@@ -5,8 +5,14 @@ from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
 import os
+from src.services.redis_service import redis_client
+import secrets
+import asyncio
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+RESET_TOKEN_PREFIX = "reset_token:"
+RESET_TOKEN_TTL = 1800  # 30 minutes
 
 
 async def send_verification_email(email: str, token: str):
@@ -153,3 +159,88 @@ def verify_user_email(db: Session, token: str):
         db.commit()
         db.refresh(user)
     return user
+
+
+async def send_password_reset_email(email: str, token: str):
+    """
+    Send a password reset email with a tokenized link to the user.
+
+    Args:
+        email (str): The recipient's email address.
+        token (str): The password reset token to include in the link.
+    """
+    from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+    conf = ConnectionConfig(
+        MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
+        MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
+        MAIL_FROM=os.environ.get("MAIL_FROM"),
+        MAIL_PORT=int(os.environ.get("MAIL_PORT", 465)),
+        MAIL_SERVER=os.environ.get("MAIL_SERVER"),
+        MAIL_STARTTLS=os.environ.get("MAIL_STARTTLS", "False") == "True",
+        MAIL_SSL_TLS=os.environ.get("MAIL_SSL_TLS", "True") == "True",
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True
+    )
+    reset_link = f"http://localhost:8000/auth/reset-password?token={token}"
+    message = MessageSchema(
+        subject="Password Reset Request",
+        recipients=[email],
+        body=f"To reset your password, click the following link (valid for 30 minutes): {reset_link}",
+        subtype="plain"
+    )
+    fm = FastMail(conf)
+    await fm.send_message(message)
+
+
+async def create_password_reset_token(email: str) -> str:
+    """
+    Generate and store a password reset token in Redis for the given email.
+
+    Args:
+        email (str): The user's email address.
+
+    Returns:
+        str: The generated token.
+    """
+    token = secrets.token_urlsafe(32)
+    await redis_client.set(f"{RESET_TOKEN_PREFIX}{token}", email, ex=RESET_TOKEN_TTL)
+    return token
+
+
+async def verify_password_reset_token(token: str) -> str | None:
+    """
+    Verify a password reset token and return the associated email if valid.
+
+    Args:
+        token (str): The password reset token.
+
+    Returns:
+        Optional[str]: The email if the token is valid, else None.
+    """
+    email = await redis_client.get(f"{RESET_TOKEN_PREFIX}{token}")
+    return email
+
+
+async def consume_password_reset_token(token: str):
+    """
+    Remove a password reset token from Redis after use.
+    """
+    await redis_client.delete(f"{RESET_TOKEN_PREFIX}{token}")
+
+
+async def reset_user_password(db: Session, email: str, new_password: str):
+    """
+    Set a new password for the user with the given email.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        email (str): The user's email address.
+        new_password (str): The new password to set.
+    """
+    user = get_user_by_email(db, email)
+    if not user:
+        return False
+    user.hashed_password = pwd_context.hash(new_password)
+    db.commit()
+    db.refresh(user)
+    return True
