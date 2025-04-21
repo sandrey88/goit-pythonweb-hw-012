@@ -63,3 +63,6 @@ docker-compose.override.yml
 
 test_api.db
 test_users_admin_api.db
+
+# Sphinx documentation
+docs/build/
