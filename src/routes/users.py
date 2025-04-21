@@ -9,7 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi import Limiter
 from fastapi import Request
 from src.limiter import limiter, REGISTER_LIMIT, ME_LIMIT
-from src.dependencies import get_current_user
+from src.dependencies import get_current_user, get_current_admin
 from src.services.cloudinary_service import upload_avatar
 from src.services.redis_service import redis_client
 
@@ -120,6 +120,28 @@ def update_avatar(
     result = upload_avatar(file.file, public_id=f"user_{current_user.id}")
     avatar_url = result.get("secure_url")
     user = user_repo.update_user_avatar(db, current_user.id, avatar_url)
+    return user
+
+@router.patch("/avatar/default", response_model=UserRead)
+async def set_default_avatar(
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    """
+    Set the default avatar for the current admin user.
+
+    Only users with the 'admin' role can perform this operation.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        current_admin (User): The currently authenticated admin user.
+
+    Returns:
+        UserRead: The updated user instance with the default avatar URL.
+    """
+    # Example: set a predefined default avatar URL
+    default_avatar_url = "https://res.cloudinary.com/demo/image/upload/v1234567890/default_avatar.png"
+    user = user_repo.update_user_avatar(db, current_admin.id, default_avatar_url)
     return user
 
 @router.post("/request-password-reset", status_code=200)

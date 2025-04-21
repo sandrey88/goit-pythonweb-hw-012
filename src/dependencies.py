@@ -40,3 +40,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_d
     user_dict = {c.name: getattr(user, c.name) for c in user.__table__.columns}
     await redis_client.set(cache_key, json.dumps(user_dict, default=default_serializer), ex=900)  # 15 min TTL
     return user
+
+async def get_current_admin(current_user=Depends(get_current_user)):
+    """
+    Dependency that checks if the current user has admin privileges.
+
+    Args:
+        current_user (User): The currently authenticated user.
+
+    Returns:
+        User: The current user instance if admin.
+
+    Raises:
+        HTTPException: If the user is not an admin.
+    """
+    if getattr(current_user, "role", None) != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required.")
+    return current_user

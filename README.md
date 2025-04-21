@@ -133,6 +133,10 @@ If you use Docker Compose, use `REDIS_URL=redis://redis:6379/0` instead.
 - Subsequent requests with the same token will retrieve the user from Redis, reducing database load.
 - No manual Alembic migrations are required; database tables are created automatically on app startup via SQLAlchemy.
 
+## Alembic and migrations
+
+> **Note:** Alembic and migration-related files have been removed. The database schema is now managed directly via SQLAlchemy models. To recreate the database, simply drop the old database and let SQLAlchemy create all tables according to the current models.
+
 ## Running the Application
 
 ### Using Docker (recommended):
@@ -319,6 +323,30 @@ The application supports a secure password reset mechanism via email confirmatio
   - If the token is valid, the password will be updated.
 
 > **Note:** The reset link/token is valid for 30 minutes. After a successful reset, the token becomes invalid.
+
+## How to make a user admin
+
+If you want to grant admin rights to a user, you must do it manually in the database. Example using psql:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'user@example.com';
+```
+
+You can run this command inside the database container:
+
+```bash
+docker-compose exec db psql -U user -d contacts_db -c "UPDATE users SET role = 'admin' WHERE email = 'user@example.com';"
+```
+
+Replace `user@example.com` with the target email address.
+
+To verify the user's role in the database, run:
+
+```bash
+docker-compose exec db psql -U user -d contacts_db -c "SELECT email, role FROM users WHERE email = 'user@example.com';"
+```
+
+Replace `user@example.com` with the target email address.
 
 ## Documentation
 

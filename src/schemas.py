@@ -8,8 +8,10 @@ class UserBase(BaseModel):
 
     Attributes:
         email (EmailStr): User's email address.
+        role (str): Role of the user, possible values are 'user' and 'admin'.
     """
     email: EmailStr
+    role: str = "user"
 
 class UserCreate(UserBase):
     """
@@ -31,6 +33,7 @@ class UserRead(UserBase):
         verification_token (Optional[str]): Email verification token.
         avatar_url (Optional[str]): URL to the user's avatar.
         created_at (Optional[datetime]): Account creation timestamp.
+        role (str): Role of the user, possible values are 'user' and 'admin'.
     """
     id: int
     is_verified: bool

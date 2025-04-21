@@ -17,7 +17,12 @@ class User(Base):
         avatar (str): Path to the user's avatar image.
         avatar_url (str): URL to the user's avatar image.
         created_at (datetime): Date and time of user creation.
+        role (str): Role of the user, possible values are 'user' and 'admin'.
         contacts (List[Contact]): List of user's contacts.
+
+    Note:
+    To grant admin rights, update the user's role in the database manually:
+    UPDATE users SET role = 'admin' WHERE email = 'user@example.com';
     """
     __tablename__ = "users"
 
@@ -29,6 +34,7 @@ class User(Base):
     avatar = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    role = Column(String, default="user", nullable=False)
 
     contacts = relationship("Contact", back_populates="user")
 
